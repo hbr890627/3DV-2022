@@ -227,4 +227,4 @@ dependencies:
     - vecrec==0.3.1
     - xatlas==0.0.6
     - xxhash==3.0.0
-prefix: /home/odie/anaconda3/envs/py3d
+prefix: /home/hbr/anaconda3/envs/py3d

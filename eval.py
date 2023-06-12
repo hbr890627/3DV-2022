@@ -12,10 +12,11 @@ from omegaconf import DictConfig
 
 cd_loss = ChamferDistanceLoss()
 
+
 def calculate_loss(predictions, ground_truth, cfg):
-    if cfg.dtype == 'voxel':
-        loss = losses.voxel_loss(predictions,ground_truth)
-    elif cfg.dtype == 'point':
+    if cfg.dtype == "voxel":
+        loss = losses.voxel_loss(predictions, ground_truth)
+    elif cfg.dtype == "point":
         loss = cd_loss(predictions, ground_truth)
     # elif cfg.dtype == 'mesh':
     #     sample_trg = sample_points_from_meshes(ground_truth, cfg.n_points)
@@ -24,8 +25,9 @@ def calculate_loss(predictions, ground_truth, cfg):
     #     loss_reg = losses.chamfer_loss(sample_pred, sample_trg)
     #     loss_smooth = losses.smoothness_loss(predictions)
 
-        # loss = cfg.w_chamfer * loss_reg + cfg.w_smooth * loss_smooth        
+    # loss = cfg.w_chamfer * loss_reg + cfg.w_smooth * loss_smooth
     return loss
+
 
 @hydra.main(config_path="configs/", config_name="config.yml")
 def evaluate_model(cfg: DictConfig):
@@ -36,10 +38,11 @@ def evaluate_model(cfg: DictConfig):
         batch_size=cfg.batch_size,
         num_workers=cfg.num_workers,
         pin_memory=True,
-        drop_last=True)
+        drop_last=True,
+    )
     eval_loader = iter(loader)
 
-    model =  SingleViewto3D(cfg)
+    model = SingleViewto3D(cfg)
     model.cuda()
     model.eval()
 
@@ -49,10 +52,10 @@ def evaluate_model(cfg: DictConfig):
     avg_loss = []
 
     if cfg.load_eval_checkpoint:
-        checkpoint = torch.load(f'{cfg.base_dir}/checkpoint_{cfg.dtype}.pth')
-        model.load_state_dict(checkpoint['model_state_dict'])
+        checkpoint = torch.load(f"{cfg.base_dir}/checkpoint_{cfg.dtype}.pth")
+        model.load_state_dict(checkpoint["model_state_dict"])
         print(f"Succesfully loaded iter {start_iter}")
-    
+
     print("Starting evaluating !")
     max_iter = len(eval_loader)
     for step in range(start_iter, max_iter):
@@ -66,14 +69,14 @@ def evaluate_model(cfg: DictConfig):
         read_time = time.time() - read_start_time
 
         prediction_3d = model(images_gt, cfg)
-        torch.save(prediction_3d.detach().cpu(), f'{cfg.base_dir}/pre_point_cloud.pt')
+        torch.save(prediction_3d.detach().cpu(), f"{cfg.base_dir}/pre_point_cloud.pt")
 
         loss = calculate_loss(prediction_3d, ground_truth_3d, cfg).cpu().item()
 
         # TODO:
         # if (step % cfg.vis_freq) == 0:
         #     # visualization block
-        #     #  rend = 
+        #     #  rend =
         #     plt.imsave(f'vis/{step}_{args.dtype}.png', rend)
 
         total_time = time.time() - start_time
@@ -81,9 +84,20 @@ def evaluate_model(cfg: DictConfig):
 
         avg_loss.append(loss)
 
-        print("[%4d/%4d]; ttime: %.0f (%.2f, %.2f); eva_loss: %.3f" % (step, cfg.max_iter, total_time, read_time, iter_time, torch.tensor(avg_loss).mean()))
+        print(
+            "[%4d/%4d]; ttime: %.0f (%.2f, %.2f); eva_loss: %.3f"
+            % (
+                step,
+                cfg.max_iter,
+                total_time,
+                read_time,
+                iter_time,
+                torch.tensor(avg_loss).mean(),
+            )
+        )
 
-    print('Done!')
+    print("Done!")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     evaluate_model()

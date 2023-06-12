@@ -4,8 +4,10 @@ import time
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+
 # from pytorch3d.utils import ico_sphere
-# import pytorch3d
+import pytorch3d
+
 
 class SingleViewto3D(nn.Module):
     def __init__(self, cfg):
@@ -13,23 +15,26 @@ class SingleViewto3D(nn.Module):
         self.device = "cuda"
         vision_model = torchvision_models.__dict__[cfg.arch](pretrained=True)
         self.encoder = torch.nn.Sequential(*(list(vision_model.children())[:-1]))
-        self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+        self.normalize = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+        )
 
         # define decoder
         if cfg.dtype == "voxel":
             pass
             # TODO:
-            # self.decoder =             
+            # self.decoder =
         elif cfg.dtype == "point":
             self.n_point = cfg.n_points
             # TODO:
             # self.decoder = PointDecoder(cfg.n_points, 512)
+
         # elif cfg.dtype == "mesh":
         #     # try different mesh initializations
         #     mesh_pred = ico_sphere(4,'cuda')
         #     self.mesh_pred = pytorch3d.structures.Meshes(mesh_pred.verts_list()*cfg.batch_size, mesh_pred.faces_list()*cfg.batch_size)
         #     # TODO:
-        #     # self.decoder =             
+        #     # self.decoder =
 
     def forward(self, images, cfg):
         results = dict()
@@ -39,13 +44,13 @@ class SingleViewto3D(nn.Module):
 
         B = images.shape[0]
 
-        images_normalize = self.normalize(images.permute(0,3,1,2))
+        images_normalize = self.normalize(images.permute(0, 3, 1, 2))
         encoded_feat = self.encoder(images_normalize).squeeze(-1).squeeze(-1)
 
         # call decoder
         if cfg.dtype == "voxel":
             # TODO:
-            # voxels_pred =             
+            # voxels_pred =
             return voxels_pred
 
         elif cfg.dtype == "point":
@@ -55,9 +60,9 @@ class SingleViewto3D(nn.Module):
 
         # elif cfg.dtype == "mesh":
         #     # TODO:
-        #     # deform_vertices_pred =             
+        #     # deform_vertices_pred =
         #     mesh_pred = self.mesh_pred.offset_verts(deform_vertices_pred.reshape([-1,3]))
-        #     return  mesh_pred          
+        #     return  mesh_pred
 
 
 # class PointDecoder(nn.Module):
