@@ -51,7 +51,9 @@ def train_model(cfg: DictConfig):
     start_time = time.time()
 
     if cfg.load_checkpoint:
-        checkpoint = torch.load(f"{cfg.base_dir}/checkpoint_{cfg.dtype}.pth")
+        checkpoint = torch.load(
+            f"{cfg.base_dir}/checkpoints/checkpoint_{cfg.dtype}.pth"
+        )
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         start_iter = checkpoint["step"]
@@ -91,7 +93,7 @@ def train_model(cfg: DictConfig):
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                 },
-                f"{cfg.base_dir}/checkpoint_{cfg.dtype}.pth",
+                f"{cfg.base_dir}/checkpoints/checkpoint_{cfg.dtype}_{step}.pth",
             )
 
         print(

@@ -9,6 +9,9 @@ import numpy as np
 import hydra
 from omegaconf import DictConfig
 
+import matplotlib.pyplot as plt
+import os
+
 
 cd_loss = ChamferDistanceLoss()
 
@@ -29,7 +32,7 @@ def calculate_loss(predictions, ground_truth, cfg):
     return loss
 
 
-@hydra.main(config_path="configs/", config_name="config.yml")
+@hydra.main(config_path="configs/", config_name="config.yaml")
 def evaluate_model(cfg: DictConfig):
     shapenetdb = ShapeNetDB(cfg.data_dir, cfg.dtype)
 
@@ -52,7 +55,9 @@ def evaluate_model(cfg: DictConfig):
     avg_loss = []
 
     if cfg.load_eval_checkpoint:
-        checkpoint = torch.load(f"{cfg.base_dir}/checkpoint_{cfg.dtype}.pth")
+        checkpoint = torch.load(
+            f"{cfg.base_dir}/checkpoints/checkpoint_{cfg.dtype}_{100}.pth"
+        )
         model.load_state_dict(checkpoint["model_state_dict"])
         print(f"Succesfully loaded iter {start_iter}")
 
@@ -74,10 +79,42 @@ def evaluate_model(cfg: DictConfig):
         loss = calculate_loss(prediction_3d, ground_truth_3d, cfg).cpu().item()
 
         # TODO:
-        # if (step % cfg.vis_freq) == 0:
-        #     # visualization block
-        #     #  rend =
-        #     plt.imsave(f'vis/{step}_{args.dtype}.png', rend)
+        if (step % cfg.vis_freq) == 0:
+            # visualization block
+            #  rend =
+            if cfg.dtype == "voxel":
+                prediction_3d = prediction_3d.detach().cpu().numpy()
+                ground_truth_3d = ground_truth_3d.detach().cpu().numpy()
+
+                fig = plt.figure()
+                ax1 = fig.add_subplot(121, projection="3d")
+                ax1.voxels(prediction_3d[0], facecolors="red")
+                ax2 = fig.add_subplot(122, projection="3d")
+                ax2.voxels(ground_truth_3d[0], facecolors="blue")
+                fig.savefig(f"{cfg.base_dir}/vis/{step}_{cfg.dtype}.png")
+
+            elif cfg.dtype == "point":
+                prediction_3d = prediction_3d.detach().cpu().numpy()
+                ground_truth_3d = ground_truth_3d.detach().cpu().numpy()
+
+                fig = plt.figure()
+                ax1 = fig.add_subplot(121, projection="3d")
+                ax1.scatter(
+                    prediction_3d[0, ..., 0],
+                    prediction_3d[0, ..., 1],
+                    prediction_3d[0, ..., 2],
+                    c="r",
+                    marker=".",
+                )
+                ax2 = fig.add_subplot(122, projection="3d")
+                ax2.scatter(
+                    ground_truth_3d[0, ..., 0],
+                    ground_truth_3d[0, ..., 1],
+                    ground_truth_3d[0, ..., 2],
+                    c="b",
+                    marker=".",
+                )
+                fig.savefig(f"{cfg.base_dir}/vis/{step}_{cfg.dtype}.png")
 
         total_time = time.time() - start_time
         iter_time = time.time() - iter_start_time

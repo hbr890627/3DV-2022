@@ -6,3 +6,4 @@ outputs
 visual.ipynb
 *.zip
 .vscode
+*.png
