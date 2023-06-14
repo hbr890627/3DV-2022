@@ -1,5 +1,7 @@
 import time
 import torch
+import numpy as np
+import pickle
 from src.dataset import ShapeNetDB
 from src.model import SingleViewto3D
 import src.losses as losses
@@ -15,7 +17,8 @@ def calculate_loss(predictions, ground_truth, cfg):
     if cfg.dtype == "voxel":
         loss = losses.voxel_loss(predictions, ground_truth)
     elif cfg.dtype == "point":
-        loss = cd_loss(predictions, ground_truth)
+        loss = losses.chamfer_loss(predictions, ground_truth)
+        # loss = cd_loss(predictions, ground_truth)
     # elif cfg.dtype == 'mesh':
     #     sample_trg = sample_points_from_meshes(ground_truth, cfg.n_points)
     #     sample_pred = sample_points_from_meshes(predictions, cfg.n_points)
@@ -47,20 +50,24 @@ def train_model(cfg: DictConfig):
 
     # ============ preparing optimizer ... ============
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)  # to use with ViTs
-    start_iter = 0
+    start_iter = 1
     start_time = time.time()
 
     if cfg.load_checkpoint:
         checkpoint = torch.load(
-            f"{cfg.base_dir}/checkpoints/checkpoint_{cfg.dtype}.pth"
+            f"{cfg.base_dir}/checkpoints/{cfg.dtype}/checkpoint_{4000}.pth"
         )
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         start_iter = checkpoint["step"]
         print(f"Succesfully loaded iter {start_iter}")
 
+    # save the losses
+    hist = {}
+    hist["loss"] = np.zeros(cfg.max_iter)
+
     print("Starting training !")
-    for step in range(start_iter, cfg.max_iter):
+    for step in range(start_iter, cfg.max_iter + 1):
         iter_start_time = time.time()
 
         if step % len(train_loader) == 0:  # restart after one epoch
@@ -93,7 +100,7 @@ def train_model(cfg: DictConfig):
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                 },
-                f"{cfg.base_dir}/checkpoints/checkpoint_{cfg.dtype}_{step}.pth",
+                f"{cfg.base_dir}/checkpoints/{cfg.dtype}/checkpoint_{step}.pth",
             )
 
         print(
@@ -101,7 +108,13 @@ def train_model(cfg: DictConfig):
             % (step, cfg.max_iter, total_time, read_time, iter_time, loss_vis)
         )
 
+        # save the losses
+        hist["loss"][step - 1] = loss_vis
+
     print("Done!")
+
+    with open(f"{cfg.base_dir}/checkpoints/loss_{cfg.dtype}.pkl", "wb") as f:
+        pickle.dump(hist, f)
 
 
 if __name__ == "__main__":

@@ -1,20 +1,15 @@
 import torch
-from torch.nn.functional import binary_cross_entropy, cross_entropy
+from torch.nn.functional import binary_cross_entropy
 from pytorch3d.loss import chamfer_distance
 
 
-# define losses
 def voxel_loss(voxel_src, voxel_tgt):
-    # loss =
-    # implement some loss for binary voxel grids
     voxel_tgt = voxel_tgt.float()
-    prob_loss = cross_entropy(voxel_src, voxel_tgt)
+    prob_loss = binary_cross_entropy(voxel_src, voxel_tgt)
     return prob_loss
 
 
 def chamfer_loss(point_cloud_src, point_cloud_tgt):
-    # loss_chamfer =
-    # implement chamfer loss from scratch
     loss_chamfer, _ = chamfer_distance(point_cloud_src, point_cloud_tgt)
     return loss_chamfer
 

@@ -20,7 +20,8 @@ def calculate_loss(predictions, ground_truth, cfg):
     if cfg.dtype == "voxel":
         loss = losses.voxel_loss(predictions, ground_truth)
     elif cfg.dtype == "point":
-        loss = cd_loss(predictions, ground_truth)
+        # loss = cd_loss(predictions, ground_truth)
+        loss = losses.chamfer_loss(predictions, ground_truth)
     # elif cfg.dtype == 'mesh':
     #     sample_trg = sample_points_from_meshes(ground_truth, cfg.n_points)
     #     sample_pred = sample_points_from_meshes(predictions, cfg.n_points)
@@ -56,7 +57,7 @@ def evaluate_model(cfg: DictConfig):
 
     if cfg.load_eval_checkpoint:
         checkpoint = torch.load(
-            f"{cfg.base_dir}/checkpoints/checkpoint_{cfg.dtype}_{100}.pth"
+            f"{cfg.base_dir}/checkpoints/{cfg.dtype}/checkpoint_{4096}_{1000}.pth"
         )
         model.load_state_dict(checkpoint["model_state_dict"])
         print(f"Succesfully loaded iter {start_iter}")
@@ -80,25 +81,27 @@ def evaluate_model(cfg: DictConfig):
 
         # TODO:
         if (step % cfg.vis_freq) == 0:
-            # visualization block
-            #  rend =
+            # convert from cuda to numpy
+            prediction_3d = prediction_3d.detach().cpu().numpy()
+            ground_truth_3d = ground_truth_3d.detach().cpu().numpy()
+
+            # initialize figure
+            fig = plt.figure()
+            ax1 = fig.add_subplot(121, projection="3d")
+            ax2 = fig.add_subplot(122, projection="3d")
+
+            # voxel grid
             if cfg.dtype == "voxel":
-                prediction_3d = prediction_3d.detach().cpu().numpy()
-                ground_truth_3d = ground_truth_3d.detach().cpu().numpy()
+                # if confident enough, then True
+                prediction_3d[0] = prediction_3d[0] > 0.3
 
-                fig = plt.figure()
-                ax1 = fig.add_subplot(121, projection="3d")
+                # plot
                 ax1.voxels(prediction_3d[0], facecolors="red")
-                ax2 = fig.add_subplot(122, projection="3d")
                 ax2.voxels(ground_truth_3d[0], facecolors="blue")
-                fig.savefig(f"{cfg.base_dir}/vis/{step}_{cfg.dtype}.png")
 
+            # point cloud
             elif cfg.dtype == "point":
-                prediction_3d = prediction_3d.detach().cpu().numpy()
-                ground_truth_3d = ground_truth_3d.detach().cpu().numpy()
-
-                fig = plt.figure()
-                ax1 = fig.add_subplot(121, projection="3d")
+                # plot
                 ax1.scatter(
                     prediction_3d[0, ..., 0],
                     prediction_3d[0, ..., 1],
@@ -106,7 +109,6 @@ def evaluate_model(cfg: DictConfig):
                     c="r",
                     marker=".",
                 )
-                ax2 = fig.add_subplot(122, projection="3d")
                 ax2.scatter(
                     ground_truth_3d[0, ..., 0],
                     ground_truth_3d[0, ..., 1],
@@ -114,7 +116,9 @@ def evaluate_model(cfg: DictConfig):
                     c="b",
                     marker=".",
                 )
-                fig.savefig(f"{cfg.base_dir}/vis/{step}_{cfg.dtype}.png")
+
+            # save figure
+            fig.savefig(f"{cfg.base_dir}/vis/{cfg.dtype}/{step}.png")
 
         total_time = time.time() - start_time
         iter_time = time.time() - iter_start_time

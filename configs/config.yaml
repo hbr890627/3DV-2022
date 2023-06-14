@@ -1,26 +1,26 @@
 # input data
 base_dir: /home/hbr/code/3DV-2022
 data_dir: ${base_dir}/data/chair
-dtype: "voxel" # "point" "voxel"
-n_points: 2048
-# n_points: 1024
+dtype: "point" # "point" "voxel"
+n_points: 4096
 
 # vision model
 arch: resnet18
 
 # training
-lr: 0.0004
-max_iter: 10000
+# lr: 0.0001
+lr: 1e-5
+max_iter: 1000
 
 # dataloader
 batch_size: 10
-num_workers: 0
+num_workers: 2
 
 # logger
 log_freq: 1000
 
 # checkpoint
-save_freq: 100
+save_freq: 200
 load_checkpoint: False
 
 # eval

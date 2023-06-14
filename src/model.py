@@ -22,12 +22,11 @@ class SingleViewto3D(nn.Module):
         # define decoder
         if cfg.dtype == "voxel":
             pass
-            # TODO:
-            self.decoder = VoxelsDecoder(cfg.n_points, 512)
+            self.decoder = VoxelsDecoder1(512)
+            # self.decoder = VoxelsDecoder2(512)
 
         elif cfg.dtype == "point":
             self.n_point = cfg.n_points
-            # TODO:
             self.decoder = PointDecoder(cfg.n_points, 512)
 
         # elif cfg.dtype == "mesh":
@@ -66,22 +65,39 @@ class SingleViewto3D(nn.Module):
         #     return  mesh_pred
 
 
-class VoxelsDecoder(nn.Module):
-    def __init__(self, num_points, latent_size):
-        super(VoxelsDecoder, self).__init__()
-        self.num_points = num_points
-        self.fc0 = nn.ConvTranspose2d(latent_size, 33, 33, 1, 0)
-        # self.fc1 = nn.ConvTranspose2d(512, 256, 4, 2, 1)
-        # self.fc2 = nn.ConvTranspose2d(256, 128, 4, 2, 1)
-        # self.fc3 = nn.ConvTranspose2d(128, 64, 4, 2, 1)
-        # self.fc4 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        # self.fc5 = nn.ConvTranspose3d(32, 1, 4, 2, 1)
-        self.th = nn.Tanh()
+class VoxelsDecoder1(nn.Module):
+    def __init__(self, latent_size):
+        super(VoxelsDecoder1, self).__init__()
+        self.fc0 = nn.ConvTranspose2d(latent_size, out_channels=33, kernel_size=33)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         batchsize = x.size()[0]
         z = x.view(batchsize, -1, 1, 1)
-        x = F.relu(self.fc0(z))
+        x = self.sigmoid(self.fc0(z))
+        return x
+
+
+class VoxelsDecoder2(nn.Module):
+    def __init__(self, latent_size):
+        super(VoxelsDecoder2, self).__init__()
+        self.fc0 = nn.Linear(latent_size, 100)
+        self.fc1 = nn.Linear(100, 128)
+        self.fc2 = nn.Linear(128, 256)
+        self.fc3 = nn.Linear(256, 512)
+        self.fc4 = nn.Linear(512, 1024)
+        self.fc5 = nn.Linear(1024, 33 * 33 * 33)
+        self.th = nn.Tanh()
+
+    def forward(self, x):
+        batchsize = x.size()[0]
+        x = F.relu(self.fc0(x))
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
+        x = self.th(self.fc5(x))
+        x = x.view(batchsize, 33, 33, 33)
         return x
 
 
